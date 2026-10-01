@@ -1,0 +1,30 @@
+#!/bin/sh
+# Runs clang-tidy on the C++ files being committed and blocks the commit on
+# any finding. Enable once per clone with `make hooks`; skip a single commit
+# with `git commit --no-verify`.
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.cpp' '*.h')
+[ -n "$staged" ] || exit 0
+
+tidy=$(make -s print-CLANG_TIDY 2>/dev/null)
+if [ -z "$tidy" ] || ! command -v "$tidy" >/dev/null 2>&1; then
+    echo "pre-commit: clang-tidy not found (brew install llvm); skipping lint" >&2
+    exit 0
+fi
+
+# A changed header can affect any .cpp that includes it, so lint them all.
+# Otherwise lint just the staged .cpp files.
+if printf '%s\n' "$staged" | grep -q '\.h$'; then
+    echo "pre-commit: header changed, linting all sources..." >&2
+    make -s lint
+else
+    files=$(printf '%s\n' "$staged" | tr '\n' ' ')
+    echo "pre-commit: linting $files" >&2
+    make -s lint LINT_FILES="$files"
+fi
+status=$?
+
+if [ $status -ne 0 ]; then
+    echo "pre-commit: clang-tidy found problems; commit blocked (fix them, or --no-verify to skip)" >&2
+fi
+exit $status
