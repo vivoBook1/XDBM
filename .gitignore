@@ -1,3 +1,19 @@
 build/
 *.db
 *.notes
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Claude Code personal settings
+.claude/settings.local.json
+CLAUDE.local.md
